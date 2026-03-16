@@ -229,6 +229,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
         }
         
         .merchant-profile {
@@ -328,7 +335,7 @@
             font-size: 20px;
         }
         
-        .btn-primary, .btn-success, .btn-danger, .btn-warning {
+        .btn-primary, .btn-success, .btn-danger, .btn-warning, .btn-info {
             padding: 10px 20px;
             border: none;
             border-radius: 12px;
@@ -361,7 +368,12 @@
             color: white;
         }
         
-        .btn-primary:hover, .btn-success:hover, .btn-danger:hover, .btn-warning:hover {
+        .btn-info {
+            background: var(--info);
+            color: white;
+        }
+        
+        .btn-primary:hover, .btn-success:hover, .btn-danger:hover, .btn-warning:hover, .btn-info:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
@@ -419,9 +431,19 @@
             color: #721c24;
         }
         
+        .delivery-badge {
+            background: var(--info);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            margin-left: 5px;
+        }
+        
         .action-buttons {
             display: flex;
             gap: 5px;
+            flex-wrap: wrap;
         }
         
         .action-btn {
@@ -445,6 +467,11 @@
         .action-btn.view {
             background: #e8eaf6;
             color: var(--info);
+        }
+        
+        .action-btn.map {
+            background: #ffeaa7;
+            color: #d63031;
         }
         
         /* Modal */
@@ -578,9 +605,34 @@
             font-weight: 600;
         }
         
+        .delivery-options {
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        
+        .delivery-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 3px;
+        }
+        
+        .delivery-option input {
+            width: auto;
+            margin-right: 5px;
+        }
+        
+        .ongkir-input {
+            margin-top: 5px;
+            padding: 5px;
+            background: #f0f0f0;
+            border-radius: 8px;
+        }
+        
         .product-actions {
             display: flex;
             gap: 10px;
+            margin-top: 10px;
         }
         
         /* Notification Panel */
@@ -690,6 +742,22 @@
             width: 100%;
         }
         
+        /* Maps Link */
+        .maps-link {
+            display: inline-block;
+            background: var(--info);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .maps-link:hover {
+            background: #0773c5;
+        }
+        
         /* Responsive */
         @media (max-width: 1024px) {
             .stats-grid {
@@ -759,6 +827,44 @@
         .notification.warning {
             border-left-color: var(--warning);
         }
+        
+        /* Real-time update animation */
+        @keyframes highlight {
+            0% { background-color: #fff3cd; }
+            100% { background-color: transparent; }
+        }
+        
+        .row-updated {
+            animation: highlight 2s ease;
+        }
+        
+        /* Auto refresh indicator */
+        .refresh-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            margin-left: 10px;
+            animation: blink 2s infinite;
+        }
+        
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        
+        /* Sound toggle */
+        .sound-toggle {
+            cursor: pointer;
+            margin-right: 10px;
+            color: var(--gray);
+        }
+        
+        .sound-toggle.active {
+            color: var(--primary);
+        }
     </style>
 </head>
 <body>
@@ -787,6 +893,10 @@
             <div id="login-form">
                 <input type="text" id="merchant-username" placeholder="Username / No HP" class="form-control">
                 <input type="password" id="merchant-password" placeholder="Password" class="form-control">
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <input type="checkbox" id="remember-me" style="width: auto; margin-right: 10px;" checked>
+                    <label for="remember-me" style="font-size: 14px; color: #7f8c8d;">Ingat saya (7 hari)</label>
+                </div>
                 <button class="btn-primary" style="width: 100%;" onclick="merchantLogin()">MASUK</button>
             </div>
             
@@ -798,6 +908,10 @@
                 <input type="text" id="reg-alamat" placeholder="Alamat Toko" class="form-control">
                 <input type="password" id="reg-password" placeholder="Password" class="form-control">
                 <input type="password" id="reg-password2" placeholder="Ulangi Password" class="form-control">
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <input type="checkbox" id="reg-remember-me" style="width: auto; margin-right: 10px;" checked>
+                    <label for="reg-remember-me" style="font-size: 14px; color: #7f8c8d;">Ingat saya (7 hari)</label>
+                </div>
                 <button class="btn-success" style="width: 100%;" onclick="merchantRegister()">DAFTAR</button>
             </div>
             
@@ -855,10 +969,13 @@
                 <!-- Top Bar -->
                 <div class="top-bar">
                     <div class="page-title">
-                        <h2 id="page-title">Dashboard</h2>
+                        <h2 id="page-title">Dashboard <span class="refresh-indicator" title="Auto refresh setiap 10 detik"></span></h2>
                     </div>
                     
                     <div class="merchant-info">
+                        <div class="sound-toggle active" id="sound-toggle" onclick="toggleSound()" title="Suara notifikasi">
+                            <i class="fas fa-volume-up"></i>
+                        </div>
                         <div class="notification-badge" onclick="toggleNotifications()">
                             <i class="far fa-bell"></i>
                             <span class="notification-count" id="notif-count">0</span>
@@ -962,6 +1079,7 @@
                                     <th>Pembeli</th>
                                     <th>Produk</th>
                                     <th>Total</th>
+                                    <th>Ongkir</th>
                                     <th>Status</th>
                                     <th>Tanggal</th>
                                     <th>Aksi</th>
@@ -969,7 +1087,7 @@
                             </thead>
                             <tbody id="orders-list">
                                 <tr>
-                                    <td colspan="7" style="text-align: center; color: #7f8c8d;">Tidak ada pesanan</td>
+                                    <td colspan="8" style="text-align: center; color: #7f8c8d;">Tidak ada pesanan</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -990,6 +1108,7 @@
                                     <th>Pembeli</th>
                                     <th>Produk</th>
                                     <th>Total</th>
+                                    <th>Ongkir</th>
                                     <th>Status</th>
                                     <th>Tanggal</th>
                                     <th>Aksi</th>
@@ -997,7 +1116,7 @@
                             </thead>
                             <tbody id="history-list">
                                 <tr>
-                                    <td colspan="7" style="text-align: center; color: #7f8c8d;">Tidak ada riwayat</td>
+                                    <td colspan="8" style="text-align: center; color: #7f8c8d;">Tidak ada riwayat</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1142,6 +1261,26 @@
                     <input type="text" id="product-image" class="form-control" placeholder="https://...">
                     <small style="color: #7f8c8d;">Gunakan URL gambar atau upload nanti</small>
                 </div>
+                
+                <div class="form-group">
+                    <label>Opsi Pengiriman</label>
+                    <div class="delivery-options">
+                        <div class="delivery-option">
+                            <input type="checkbox" id="product-delivery-takeaway" checked disabled>
+                            <label for="product-delivery-takeaway">Ambil di Toko (Selalu tersedia)</label>
+                        </div>
+                        <div class="delivery-option">
+                            <input type="checkbox" id="product-delivery-antar" onchange="toggleOngkirField()">
+                            <label for="product-delivery-antar">Bisa Diantar</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group hidden" id="ongkir-field">
+                    <label>Ongkos Kirim (Rp/km)</label>
+                    <input type="number" id="product-ongkir" class="form-control" placeholder="5000" value="5000">
+                    <small style="color: #7f8c8d;">Biaya per kilometer</small>
+                </div>
             </div>
             
             <div class="modal-footer" style="display: flex; gap: 10px;">
@@ -1166,6 +1305,26 @@
             <div class="modal-footer">
                 <button class="btn-primary" onclick="cetakNota()">
                     <i class="fas fa-print"></i> CETAK NOTA
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Maps -->
+    <div class="modal-overlay" id="maps-modal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>Lokasi Pengiriman</h3>
+                <button class="close-modal" onclick="closeMapsModal()">&times;</button>
+            </div>
+            
+            <div class="modal-body" id="maps-content">
+                <!-- Isi maps akan diisi oleh JavaScript -->
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn-info" id="open-maps-btn" onclick="openGoogleMaps()">
+                    <i class="fas fa-map-marked-alt"></i> BUKA DI GOOGLE MAPS
                 </button>
             </div>
         </div>
@@ -1200,8 +1359,12 @@
         let notifications = [];
         let editingProductId = null;
         let salesChart = null;
+        let soundEnabled = true;
+        let autoRefreshInterval = null;
+        let currentMapsUrl = "";
         
         const ADMIN_WA = "6289524538835";
+        const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 hari
         
         // ===========================================
         // UTILITY FUNCTIONS
@@ -1236,6 +1399,138 @@
         }
         
         // ===========================================
+        // SOUND NOTIFICATION
+        // ===========================================
+        function playCoinSound() {
+            if (!soundEnabled) return;
+            
+            try {
+                if (window.AudioContext || window.webkitAudioContext) {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
+                    
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                    
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume();
+                    }
+                } else {
+                    const audio = new Audio();
+                    audio.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
+                    audio.volume = 0.3;
+                    audio.play().catch(e => console.log('Audio play failed:', e));
+                }
+            } catch (e) {
+                console.log('Sound not supported:', e);
+            }
+        }
+        
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const soundToggle = document.getElementById('sound-toggle');
+            if (soundEnabled) {
+                soundToggle.classList.add('active');
+                soundToggle.innerHTML = '<i class="fas fa-volume-up"></i>';
+            } else {
+                soundToggle.classList.remove('active');
+                soundToggle.innerHTML = '<i class="fas fa-volume-mute"></i>';
+            }
+        }
+        
+        // ===========================================
+        // AUTO REFRESH
+        // ===========================================
+        function startAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+            
+            autoRefreshInterval = setInterval(() => {
+                console.log('🔄 Auto refresh setiap 10 detik');
+                if (currentMerchant.id) {
+                    loadOrders();
+                    loadProducts();
+                    loadStatistics();
+                }
+            }, 10000); // 10 detik
+        }
+        
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+        
+        // ===========================================
+        // AUTO LOGIN FUNCTIONS
+        // ===========================================
+        function saveMerchantSession() {
+            if (!currentMerchant.id) return;
+            
+            const sessionData = {
+                id: currentMerchant.id,
+                loginTime: Date.now(),
+                expiresAt: Date.now() + SESSION_DURATION
+            };
+            
+            localStorage.setItem('recoin_merchant_session', JSON.stringify(sessionData));
+            console.log('✅ Session saved:', sessionData);
+        }
+        
+        function clearMerchantSession() {
+            localStorage.removeItem('recoin_merchant_session');
+            console.log('🗑️ Session cleared');
+        }
+        
+        function checkAutoLogin() {
+            const sessionJson = localStorage.getItem('recoin_merchant_session');
+            if (!sessionJson) return false;
+            
+            try {
+                const session = JSON.parse(sessionJson);
+                
+                if (session.expiresAt && session.expiresAt > Date.now()) {
+                    console.log('🔄 Auto login dengan session:', session);
+                    
+                    db.ref('/merchants/' + session.id).once('value', (snap) => {
+                        if (snap.exists()) {
+                            const merchantData = snap.val();
+                            loginSuccess(session.id, merchantData);
+                        } else {
+                            console.log('❌ Merchant tidak ditemukan di Firebase');
+                            clearMerchantSession();
+                        }
+                    }).catch(error => {
+                        console.error('Error verifying merchant:', error);
+                    });
+                    
+                    return true;
+                } else {
+                    console.log('⏰ Session expired');
+                    clearMerchantSession();
+                    return false;
+                }
+            } catch (e) {
+                console.error('Error parsing session:', e);
+                clearMerchantSession();
+                return false;
+            }
+        }
+        
+        // ===========================================
         // AUTHENTICATION
         // ===========================================
         function showLoginForm() {
@@ -1252,6 +1547,17 @@
             document.getElementById('btn-register').className = 'btn-primary';
         }
         
+        function toggleOngkirField() {
+            const antarCheckbox = document.getElementById('product-delivery-antar');
+            const ongkirField = document.getElementById('ongkir-field');
+            
+            if (antarCheckbox.checked) {
+                ongkirField.classList.remove('hidden');
+            } else {
+                ongkirField.classList.add('hidden');
+            }
+        }
+        
         function merchantRegister() {
             const namaToko = document.getElementById('reg-nama-toko').value;
             const namaPemilik = document.getElementById('reg-nama-pemilik').value;
@@ -1259,6 +1565,7 @@
             const alamat = document.getElementById('reg-alamat').value;
             const password = document.getElementById('reg-password').value;
             const password2 = document.getElementById('reg-password2').value;
+            const rememberMe = document.getElementById('reg-remember-me').checked;
             
             if (!namaToko || !namaPemilik || !phone || !alamat || !password) {
                 showNotification('Semua field harus diisi!', 'error');
@@ -1317,6 +1624,7 @@
         function merchantLogin() {
             const username = document.getElementById('merchant-username').value;
             const password = document.getElementById('merchant-password').value;
+            const rememberMe = document.getElementById('remember-me').checked;
             
             if (!username || !password) {
                 showNotification('Username dan password harus diisi!', 'error');
@@ -1356,8 +1664,7 @@
             };
             
             // Simpan session
-            localStorage.setItem('merchant_id', merchantId);
-            localStorage.setItem('merchant_login', Date.now().toString());
+            saveMerchantSession();
             
             document.getElementById('login-page').style.display = 'none';
             document.getElementById('dashboard-page').style.display = 'block';
@@ -1379,12 +1686,23 @@
             // Start listeners
             startOrderListener();
             startNotificationListener();
-            startSaldoListener(); // <-- TAMBAHKAN INI untuk real-time saldo
+            startSaldoListener();
+            startUserConfirmationListener();
+            startAutoRefresh(); // Mulai auto refresh
+            
+            showNotification('Selamat datang di Merchant RE-COIN!');
         }
         
         function merchantLogout() {
-            localStorage.removeItem('merchant_id');
-            localStorage.removeItem('merchant_login');
+            // Hentikan semua listener
+            stopAutoRefresh();
+            
+            if (currentMerchant.id) {
+                db.ref('/merchant_orders/' + currentMerchant.id).off();
+                db.ref('/merchants/' + currentMerchant.id + '/saldo').off();
+            }
+            
+            clearMerchantSession();
             
             document.getElementById('dashboard-page').style.display = 'none';
             document.getElementById('login-page').style.display = 'flex';
@@ -1413,6 +1731,7 @@
                 // Tampilkan notifikasi jika saldo bertambah
                 if (newSaldo > oldSaldo) {
                     showNotification('💰 Saldo bertambah! Ada konfirmasi pesanan baru', 'success');
+                    playCoinSound();
                 }
             });
         }
@@ -1455,6 +1774,10 @@
             let html = '';
             products.forEach(product => {
                 const stockClass = product.stock <= 5 ? 'stock-low' : '';
+                const deliveryOptions = [];
+                if (product.delivery_takeaway) deliveryOptions.push('Ambil di Toko');
+                if (product.delivery_antar) deliveryOptions.push(`Antar (Rp ${(product.ongkir || 0).toLocaleString('id-ID')}/km)`);
+                
                 html += `
                     <div class="product-card">
                         <div class="product-image">
@@ -1465,6 +1788,9 @@
                         <div class="product-price">${formatRupiah(product.price || 0)}</div>
                         <div class="product-stock ${stockClass}">
                             <i class="fas fa-box"></i> Stok: ${product.stock || 0}
+                        </div>
+                        <div class="delivery-options">
+                            <small><i class="fas fa-truck"></i> ${deliveryOptions.join(' • ')}</small>
                         </div>
                         <div class="product-actions">
                             <button class="action-btn edit" onclick="editProduct('${product.id}')">
@@ -1494,6 +1820,15 @@
                     document.getElementById('product-stock').value = product.stock || '';
                     document.getElementById('product-description').value = product.description || '';
                     document.getElementById('product-image').value = product.image || '';
+                    document.getElementById('product-delivery-antar').checked = product.delivery_antar || false;
+                    
+                    if (product.delivery_antar) {
+                        document.getElementById('ongkir-field').classList.remove('hidden');
+                        document.getElementById('product-ongkir').value = product.ongkir || 5000;
+                    } else {
+                        document.getElementById('ongkir-field').classList.add('hidden');
+                    }
+                    
                     editingProductId = productId;
                 }
             } else {
@@ -1504,6 +1839,9 @@
                 document.getElementById('product-stock').value = '';
                 document.getElementById('product-description').value = '';
                 document.getElementById('product-image').value = '';
+                document.getElementById('product-delivery-antar').checked = false;
+                document.getElementById('ongkir-field').classList.add('hidden');
+                document.getElementById('product-ongkir').value = '5000';
                 editingProductId = null;
             }
         }
@@ -1518,6 +1856,8 @@
             const stock = parseInt(document.getElementById('product-stock').value) || 0;
             const description = document.getElementById('product-description').value;
             const image = document.getElementById('product-image').value;
+            const deliveryAntar = document.getElementById('product-delivery-antar').checked;
+            const ongkir = deliveryAntar ? (parseInt(document.getElementById('product-ongkir').value) || 0) : 0;
             
             if (!name || price <= 0) {
                 showNotification('Nama produk dan harga harus diisi!', 'error');
@@ -1532,6 +1872,9 @@
                 stock: stock,
                 description: description,
                 image: image || 'https://via.placeholder.com/250x150/00b894/ffffff?text=Produk',
+                delivery_takeaway: true, // Selalu true
+                delivery_antar: deliveryAntar,
+                ongkir: ongkir,
                 updated_at: Date.now()
             };
             
@@ -1593,6 +1936,7 @@
                 displayOrders();
                 displayHistory();
                 updateDashboardOrders();
+                checkLowStock();
             });
         }
         
@@ -1601,7 +1945,7 @@
             const pendingOrders = orders.filter(o => o.status !== 'selesai' && o.status !== 'batal');
             
             if (pendingOrders.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #7f8c8d;">Tidak ada pesanan masuk</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #7f8c8d;">Tidak ada pesanan masuk</td></tr>';
                 return;
             }
             
@@ -1612,12 +1956,16 @@
                                    order.status === 'dikirim' ? 'status-dikirim' : 
                                    order.status === 'selesai' ? 'status-selesai' : 'status-batal';
                 
+                const hasDelivery = order.delivery && order.delivery.address;
+                const mapsLink = hasDelivery ? (order.delivery.google_maps_link || '#') : '#';
+                
                 html += `
-                    <tr>
+                    <tr id="order-row-${order.id}">
                         <td>#${order.id.slice(-6)}</td>
                         <td>${order.user_id || '-'}</td>
                         <td>${order.items ? order.items.length : 0} item</td>
                         <td>${formatRupiah(totalOrder)}</td>
+                        <td>${order.delivery_cost ? formatRupiah(order.delivery_cost) : 'Rp 0'}</td>
                         <td><span class="status-badge ${statusClass}">${order.status || 'diproses'}</span></td>
                         <td>${formatDate(order.timestamp)}</td>
                         <td>
@@ -1625,10 +1973,18 @@
                                 <button class="action-btn view" onclick="viewOrder('${order.id}')">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                ${order.status !== 'selesai' && order.status !== 'batal' ? `
+                                ${hasDelivery ? `
+                                    <button class="action-btn map" onclick="showMaps('${order.id}')">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </button>
+                                ` : ''}
+                                ${order.status === 'diproses' ? `
                                     <button class="action-btn edit" onclick="updateOrderStatus('${order.id}', 'dikirim')">
                                         <i class="fas fa-truck"></i>
                                     </button>
+                                ` : ''}
+                                ${order.status === 'dikirim' ? `
+                                    <span class="status-badge status-dikirim">Menunggu</span>
                                 ` : ''}
                                 <button class="action-btn" onclick="printNota('${order.id}')">
                                     <i class="fas fa-print"></i>
@@ -1647,7 +2003,7 @@
             const completedOrders = orders.filter(o => o.status === 'selesai' || o.status === 'batal');
             
             if (completedOrders.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #7f8c8d;">Tidak ada riwayat</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #7f8c8d;">Tidak ada riwayat</td></tr>';
                 return;
             }
             
@@ -1656,18 +2012,28 @@
                 const totalOrder = order.items ? order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0;
                 const statusClass = order.status === 'selesai' ? 'status-selesai' : 'status-batal';
                 
+                const hasDelivery = order.delivery && order.delivery.address;
+                
                 html += `
                     <tr>
                         <td>#${order.id.slice(-6)}</td>
                         <td>${order.user_id || '-'}</td>
                         <td>${order.items ? order.items.length : 0} item</td>
                         <td>${formatRupiah(totalOrder)}</td>
+                        <td>${order.delivery_cost ? formatRupiah(order.delivery_cost) : 'Rp 0'}</td>
                         <td><span class="status-badge ${statusClass}">${order.status}</span></td>
                         <td>${formatDate(order.timestamp)}</td>
                         <td>
-                            <button class="action-btn view" onclick="printNota('${order.id}')">
-                                <i class="fas fa-print"></i>
-                            </button>
+                            <div class="action-buttons">
+                                ${hasDelivery ? `
+                                    <button class="action-btn map" onclick="showMaps('${order.id}')">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </button>
+                                ` : ''}
+                                <button class="action-btn view" onclick="printNota('${order.id}')">
+                                    <i class="fas fa-print"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -1676,6 +2042,67 @@
             tbody.innerHTML = html;
         }
         
+        function showMaps(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (!order || !order.delivery) return;
+            
+            const mapsLink = order.delivery.google_maps_link || 
+                            `https://www.google.com/maps/search/?api=1&query=${order.delivery.user_location?.lat || 0},${order.delivery.user_location?.lng || 0}`;
+            
+            currentMapsUrl = mapsLink;
+            
+            const mapsContent = `
+                <div style="text-align: center;">
+                    <h4>Lokasi Pengiriman</h4>
+                    <p><strong>Alamat:</strong> ${order.delivery.address || 'Tidak ada alamat'}</p>
+                    <p><strong>Jarak:</strong> ${order.delivery.distance ? order.delivery.distance.toFixed(1) + ' km' : 'Tidak diketahui'}</p>
+                    <p><strong>Ongkos Kirim:</strong> ${order.delivery_cost ? formatRupiah(order.delivery_cost) : 'Rp 0'}</p>
+                    <div style="background: #f0f0f0; padding: 20px; border-radius: 10px; margin: 15px 0;">
+                        <i class="fas fa-map-marked-alt" style="font-size: 48px; color: var(--info); margin-bottom: 10px;"></i>
+                        <p>Klik tombol di bawah untuk membuka Google Maps</p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('maps-content').innerHTML = mapsContent;
+            document.getElementById('maps-modal').style.display = 'flex';
+        }
+        
+        function closeMapsModal() {
+            document.getElementById('maps-modal').style.display = 'none';
+        }
+        
+        function openGoogleMaps() {
+            if (currentMapsUrl) {
+                window.open(currentMapsUrl, '_blank');
+            }
+        }
+        
+        function checkLowStock() {
+            const lowStockProducts = products.filter(p => p.stock <= 5);
+            const container = document.getElementById('dashboard-stock');
+            
+            if (lowStockProducts.length === 0) {
+                container.innerHTML = '<p style="color: #7f8c8d;">Semua stok aman</p>';
+                return;
+            }
+            
+            let html = '';
+            lowStockProducts.slice(0, 5).forEach(product => {
+                html += `
+                    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ecf0f1;">
+                        <div style="font-weight: 600;">${product.name}</div>
+                        <div style="color: var(--danger);">Stok: ${product.stock}</div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        // ===========================================
+        // UPDATE ORDER STATUS (DARI MERCHANT)
+        // ===========================================
         function updateOrderStatus(orderId, status) {
             // Cari order
             const order = orders.find(o => o.id === orderId);
@@ -1690,13 +2117,24 @@
                 return;
             }
             
-            // Update status di Firebase
+            showNotification('Mengupdate status...', 'info');
+            
             const updates = {};
+            
+            // 1. Update di transaksi user
             updates[`/transactions/${userId}/${orderId}/status`] = status;
+            
+            // 2. Update di merchant_orders
             updates[`/merchant_orders/${currentMerchant.id}/${orderId}/status`] = status;
+            
+            // 3. Jika status 'dikirim', kirim notifikasi ke user
+            if (status === 'dikirim') {
+                updates[`/transactions/${userId}/${orderId}/delivery_sent_at`] = Date.now();
+            }
             
             db.ref().update(updates).then(() => {
                 showNotification(`Status pesanan diupdate menjadi ${status}`, 'success');
+                playCoinSound();
                 
                 // Update local orders
                 order.status = status;
@@ -1704,16 +2142,75 @@
                 displayHistory();
                 updateDashboardOrders();
                 
-                // KIRIM NOTIFIKASI KE USER (bisa via WhatsApp)
-                const pesan = `*STATUS PESANAN DIUPDATE*\n` +
-                             `Order: #${orderId.slice(-8)}\n` +
-                             `Status: ${status}\n` +
-                             `Mohon cek aplikasi untuk detail.`;
-                
-                window.open(`https://wa.me/${userId}?text=${encodeURIComponent(pesan)}`, '_blank');
+                // Kirim notifikasi WhatsApp ke user
+                if (status === 'dikirim') {
+                    const pesan = `*PESANAN ANDA TELAH DIKIRIM*\n\n` +
+                                 `Halo kak! Pesanan #${orderId.slice(-8)} sudah kami kirim.\n` +
+                                 `Silakan cek aplikasi RE-COIN untuk konfirmasi penerimaan.\n\n` +
+                                 `Terima kasih telah berbelanja di ${currentMerchant.nama_toko}! 🚀`;
+                    
+                    window.open(`https://wa.me/${userId}?text=${encodeURIComponent(pesan)}`, '_blank');
+                }
                 
             }).catch(error => {
+                console.error('Error updating status:', error);
                 showNotification('Gagal update status: ' + error.message, 'error');
+            });
+        }
+        
+        // ===========================================
+        // LISTENER UNTUK KONFIRMASI DARI USER
+        // ===========================================
+        function startUserConfirmationListener() {
+            if (!currentMerchant.id) return;
+            
+            console.log('Memulai listener konfirmasi user untuk merchant:', currentMerchant.id);
+            
+            // Listen untuk perubahan status di merchant_orders (dari user)
+            db.ref('/merchant_orders/' + currentMerchant.id).on('child_changed', (snap) => {
+                const updatedOrder = snap.val();
+                const orderId = snap.key;
+                
+                console.log('🔥 ORDER DIUPDATE USER:', orderId, updatedOrder);
+                
+                // Cari order di local array
+                const index = orders.findIndex(o => o.id === orderId);
+                
+                if (index !== -1) {
+                    // Update status
+                    orders[index].status = updatedOrder.status;
+                    
+                    // Jika status jadi 'selesai', saldo sudah ditambah oleh user
+                    if (updatedOrder.status === 'selesai') {
+                        showNotification('✅ Pesanan #' + orderId.slice(-8) + ' telah dikonfirmasi selesai oleh pembeli!', 'success');
+                        playCoinSound();
+                        
+                        // Highlight baris yang diupdate
+                        const row = document.getElementById(`order-row-${orderId}`);
+                        if (row) {
+                            row.classList.add('row-updated');
+                            setTimeout(() => {
+                                row.classList.remove('row-updated');
+                            }, 2000);
+                        }
+                        
+                        // Reload orders untuk memastikan data terbaru
+                        loadOrders();
+                    }
+                    
+                    // Update tampilan
+                    displayOrders();
+                    displayHistory();
+                    updateDashboardOrders();
+                }
+            });
+            
+            // Listen untuk order baru
+            db.ref('/merchant_orders/' + currentMerchant.id).on('child_added', (snap) => {
+                console.log('🔥 ORDER BARU:', snap.key, snap.val());
+                showNotification('📦 Ada pesanan baru!', 'success');
+                playCoinSound();
+                loadOrders();
             });
         }
         
@@ -1729,6 +2226,7 @@
             if (!order) return;
             
             const totalOrder = order.items ? order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0;
+            const grandTotal = totalOrder + (order.delivery_cost || 0);
             
             let itemsHtml = '';
             if (order.items) {
@@ -1758,7 +2256,7 @@
                         <p><strong>Merchant:</strong> ${currentMerchant.nama_toko}</p>
                         ${order.delivery ? `
                             <p><strong>Alamat Kirim:</strong> ${order.delivery.address || '-'}</p>
-                            <p><strong>Jarak:</strong> ${order.delivery.distance || 0} km</p>
+                            <p><strong>Jarak:</strong> ${order.delivery.distance ? order.delivery.distance.toFixed(1) + ' km' : '0 km'}</p>
                         ` : '<p><strong>Metode:</strong> Ambil di Toko</p>'}
                     </div>
                     
@@ -1776,9 +2274,10 @@
                         </tbody>
                     </table>
                     
-                    <div class="nota-total">
-                        <p><strong>Total: ${formatRupiah(totalOrder)}</strong></p>
-                        ${order.delivery ? '<p style="font-size: 12px; color: var(--gold);">*Ongkos kirim GRATIS</p>' : ''}
+                    <div style="text-align: right; margin-top: 10px;">
+                        <p><strong>Subtotal: ${formatRupiah(totalOrder)}</strong></p>
+                        ${order.delivery_cost ? `<p><strong>Ongkos Kirim: ${formatRupiah(order.delivery_cost)}</strong></p>` : ''}
+                        <p><strong>Total: ${formatRupiah(grandTotal)}</strong></p>
                     </div>
                 </div>
             `;
@@ -1890,6 +2389,7 @@
                 const newOrder = snap.val();
                 if (newOrder) {
                     showNotification('📦 Ada pesanan baru!', 'success');
+                    playCoinSound();
                     loadOrders();
                 }
             });
@@ -1927,7 +2427,7 @@
         }
         
         function startNotificationListener() {
-            // Listen untuk notifikasi dari Firebase (bisa ditambahkan sesuai kebutuhan)
+            // Listen untuk notifikasi dari Firebase
         }
         
         // ===========================================
@@ -1971,10 +2471,12 @@
             let html = '';
             pendingOrders.forEach(order => {
                 const totalOrder = order.items ? order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0;
+                const hasDelivery = order.delivery && order.delivery.address;
+                
                 html += `
                     <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #ecf0f1;">
                         <div>
-                            <div style="font-weight: 600;">#${order.id.slice(-6)}</div>
+                            <div style="font-weight: 600;">#${order.id.slice(-6)} ${hasDelivery ? '<i class="fas fa-truck" style="color: var(--info);"></i>' : ''}</div>
                             <div style="font-size: 12px; color: #7f8c8d;">${order.items ? order.items.length : 0} item</div>
                         </div>
                         <div style="text-align: right;">
@@ -2204,37 +2706,17 @@
         });
         
         // ===========================================
-        // AUTO LOGIN CHECK
-        // ===========================================
-        function checkAutoLogin() {
-            const merchantId = localStorage.getItem('merchant_id');
-            const loginTime = localStorage.getItem('merchant_login');
-            
-            if (merchantId && loginTime) {
-                // Cek apakah login masih valid (24 jam)
-                const now = Date.now();
-                const elapsed = now - parseInt(loginTime);
-                
-                if (elapsed < 24 * 60 * 60 * 1000) { // 24 jam
-                    db.ref('/merchants/' + merchantId).once('value', (snap) => {
-                        if (snap.exists()) {
-                            const merchantData = snap.val();
-                            loginSuccess(merchantId, merchantData);
-                        }
-                    });
-                } else {
-                    localStorage.removeItem('merchant_id');
-                    localStorage.removeItem('merchant_login');
-                }
-            }
-        }
-        
-        // ===========================================
         // INITIALIZATION
         // ===========================================
         window.onload = function() {
             showLoginForm();
-            checkAutoLogin();
+            
+            // Cek auto login
+            const autoLoginSuccess = checkAutoLogin();
+            if (!autoLoginSuccess) {
+                document.getElementById('login-page').style.display = 'flex';
+                document.getElementById('dashboard-page').style.display = 'none';
+            }
             
             // Click outside to close notification panel
             document.addEventListener('click', function(event) {
