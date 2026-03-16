@@ -1379,6 +1379,7 @@
             // Start listeners
             startOrderListener();
             startNotificationListener();
+            startSaldoListener(); // <-- TAMBAHKAN INI untuk real-time saldo
         }
         
         function merchantLogout() {
@@ -1389,6 +1390,31 @@
             document.getElementById('login-page').style.display = 'flex';
             
             showNotification('Anda telah logout', 'info');
+        }
+        
+        // ===========================================
+        // SALDO LISTENER - REAL TIME
+        // ===========================================
+        function startSaldoListener() {
+            if (!currentMerchant.id) return;
+            
+            // Listen untuk perubahan saldo
+            db.ref('/merchants/' + currentMerchant.id + '/saldo').on('value', (snap) => {
+                const newSaldo = snap.val() || 0;
+                const oldSaldo = currentMerchant.saldo;
+                
+                currentMerchant.saldo = newSaldo;
+                
+                // Update UI
+                document.getElementById('merchant-balance').innerHTML = formatRupiah(newSaldo);
+                document.getElementById('stat-saldo').innerHTML = formatRupiah(newSaldo);
+                document.getElementById('withdraw-saldo').innerHTML = formatRupiah(newSaldo);
+                
+                // Tampilkan notifikasi jika saldo bertambah
+                if (newSaldo > oldSaldo) {
+                    showNotification('💰 Saldo bertambah! Ada konfirmasi pesanan baru', 'success');
+                }
+            });
         }
         
         // ===========================================
@@ -1550,32 +1576,15 @@
         function loadOrders() {
             if (!currentMerchant.id) return;
             
-            db.ref('/transactions').once('value', (snap) => {
+            db.ref('/merchant_orders/' + currentMerchant.id).once('value', (snap) => {
                 orders = [];
                 const data = snap.val() || {};
                 
-                // Filter orders yang mengandung produk merchant ini
-                for (let userId in data) {
-                    const userOrders = data[userId];
-                    for (let orderId in userOrders) {
-                        const order = userOrders[orderId];
-                        
-                        if (order.type === 'PEMBELIAN' && order.items) {
-                            // Cek apakah ada produk dari merchant ini
-                            const merchantItems = order.items.filter(item => 
-                                products.some(p => p.id === item.id)
-                            );
-                            
-                            if (merchantItems.length > 0) {
-                                orders.push({
-                                    id: orderId,
-                                    user_id: userId,
-                                    ...order,
-                                    merchant_items: merchantItems
-                                });
-                            }
-                        }
-                    }
+                for (let orderId in data) {
+                    orders.push({
+                        id: orderId,
+                        ...data[orderId]
+                    });
                 }
                 
                 // Urutkan berdasarkan timestamp (terbaru dulu)
@@ -1598,7 +1607,7 @@
             
             let html = '';
             pendingOrders.forEach(order => {
-                const totalOrder = order.merchant_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const totalOrder = order.items ? order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0;
                 const statusClass = order.status === 'diproses' ? 'status-diproses' : 
                                    order.status === 'dikirim' ? 'status-dikirim' : 
                                    order.status === 'selesai' ? 'status-selesai' : 'status-batal';
@@ -1606,8 +1615,8 @@
                 html += `
                     <tr>
                         <td>#${order.id.slice(-6)}</td>
-                        <td>${order.user_id}</td>
-                        <td>${order.merchant_items.length} item</td>
+                        <td>${order.user_id || '-'}</td>
+                        <td>${order.items ? order.items.length : 0} item</td>
                         <td>${formatRupiah(totalOrder)}</td>
                         <td><span class="status-badge ${statusClass}">${order.status || 'diproses'}</span></td>
                         <td>${formatDate(order.timestamp)}</td>
@@ -1616,9 +1625,11 @@
                                 <button class="action-btn view" onclick="viewOrder('${order.id}')">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                                <button class="action-btn edit" onclick="updateOrderStatus('${order.id}', 'dikirim')">
-                                    <i class="fas fa-truck"></i>
-                                </button>
+                                ${order.status !== 'selesai' && order.status !== 'batal' ? `
+                                    <button class="action-btn edit" onclick="updateOrderStatus('${order.id}', 'dikirim')">
+                                        <i class="fas fa-truck"></i>
+                                    </button>
+                                ` : ''}
                                 <button class="action-btn" onclick="printNota('${order.id}')">
                                     <i class="fas fa-print"></i>
                                 </button>
@@ -1642,14 +1653,14 @@
             
             let html = '';
             completedOrders.slice(0, 20).forEach(order => {
-                const totalOrder = order.merchant_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const totalOrder = order.items ? order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0;
                 const statusClass = order.status === 'selesai' ? 'status-selesai' : 'status-batal';
                 
                 html += `
                     <tr>
                         <td>#${order.id.slice(-6)}</td>
-                        <td>${order.user_id}</td>
-                        <td>${order.merchant_items.length} item</td>
+                        <td>${order.user_id || '-'}</td>
+                        <td>${order.items ? order.items.length : 0} item</td>
                         <td>${formatRupiah(totalOrder)}</td>
                         <td><span class="status-badge ${statusClass}">${order.status}</span></td>
                         <td>${formatDate(order.timestamp)}</td>
@@ -1667,42 +1678,46 @@
         
         function updateOrderStatus(orderId, status) {
             // Cari order
-            let orderToUpdate = null;
-            let userId = null;
-            
-            for (let i = 0; i < orders.length; i++) {
-                if (orders[i].id === orderId) {
-                    orderToUpdate = orders[i];
-                    userId = orders[i].user_id;
-                    break;
-                }
+            const order = orders.find(o => o.id === orderId);
+            if (!order) {
+                showNotification('Order tidak ditemukan', 'error');
+                return;
             }
             
-            if (!orderToUpdate || !userId) return;
+            const userId = order.user_id;
+            if (!userId) {
+                showNotification('Data user tidak ditemukan', 'error');
+                return;
+            }
             
             // Update status di Firebase
-            db.ref('/transactions/' + userId + '/' + orderId + '/status').set(status).then(() => {
-                showNotification('Status pesanan diupdate', 'success');
+            const updates = {};
+            updates[`/transactions/${userId}/${orderId}/status`] = status;
+            updates[`/merchant_orders/${currentMerchant.id}/${orderId}/status`] = status;
+            
+            db.ref().update(updates).then(() => {
+                showNotification(`Status pesanan diupdate menjadi ${status}`, 'success');
                 
-                // Update saldo merchant jika status selesai
-                if (status === 'selesai') {
-                    const totalOrder = orderToUpdate.merchant_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                    const newSaldo = currentMerchant.saldo + totalOrder;
-                    
-                    db.ref('/merchants/' + currentMerchant.id + '/saldo').set(newSaldo).then(() => {
-                        currentMerchant.saldo = newSaldo;
-                        document.getElementById('merchant-balance').innerHTML = formatRupiah(newSaldo);
-                        document.getElementById('stat-saldo').innerHTML = formatRupiah(newSaldo);
-                        document.getElementById('withdraw-saldo').innerHTML = formatRupiah(newSaldo);
-                    });
-                }
+                // Update local orders
+                order.status = status;
+                displayOrders();
+                displayHistory();
+                updateDashboardOrders();
+                
+                // KIRIM NOTIFIKASI KE USER (bisa via WhatsApp)
+                const pesan = `*STATUS PESANAN DIUPDATE*\n` +
+                             `Order: #${orderId.slice(-8)}\n` +
+                             `Status: ${status}\n` +
+                             `Mohon cek aplikasi untuk detail.`;
+                
+                window.open(`https://wa.me/${userId}?text=${encodeURIComponent(pesan)}`, '_blank');
+                
             }).catch(error => {
                 showNotification('Gagal update status: ' + error.message, 'error');
             });
         }
         
         function viewOrder(orderId) {
-            // Tampilkan detail order (bisa diimplementasikan lebih detail)
             printNota(orderId);
         }
         
@@ -1713,19 +1728,21 @@
             const order = orders.find(o => o.id === orderId);
             if (!order) return;
             
-            const totalOrder = order.merchant_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const totalOrder = order.items ? order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0;
             
             let itemsHtml = '';
-            order.merchant_items.forEach(item => {
-                itemsHtml += `
-                    <tr>
-                        <td>${item.name}</td>
-                        <td>${item.quantity}</td>
-                        <td>${formatRupiah(item.price)}</td>
-                        <td>${formatRupiah(item.price * item.quantity)}</td>
-                    </tr>
-                `;
-            });
+            if (order.items) {
+                order.items.forEach(item => {
+                    itemsHtml += `
+                        <tr>
+                            <td>${item.name}</td>
+                            <td>${item.quantity}</td>
+                            <td>${formatRupiah(item.price)}</td>
+                            <td>${formatRupiah(item.price * item.quantity)}</td>
+                        </tr>
+                    `;
+                });
+            }
             
             const notaHtml = `
                 <div class="nota-container" id="nota-print">
@@ -1737,7 +1754,7 @@
                     <div class="nota-info">
                         <p><strong>No. Order:</strong> #${order.id.slice(-8)}</p>
                         <p><strong>Tanggal:</strong> ${formatDate(order.timestamp)}</p>
-                        <p><strong>Pembeli:</strong> ${order.user_id}</p>
+                        <p><strong>Pembeli:</strong> ${order.user_id || '-'}</p>
                         <p><strong>Merchant:</strong> ${currentMerchant.nama_toko}</p>
                         ${order.delivery ? `
                             <p><strong>Alamat Kirim:</strong> ${order.delivery.address || '-'}</p>
@@ -1866,15 +1883,19 @@
         // NOTIFICATIONS
         // ===========================================
         function startOrderListener() {
-            // Listen untuk order baru
-            db.ref('/transactions').on('child_changed', (snap) => {
-                loadOrders();
-                showNotification('Ada update pesanan!', 'info');
+            if (!currentMerchant.id) return;
+            
+            // Listen untuk order baru di merchant_orders
+            db.ref('/merchant_orders/' + currentMerchant.id).on('child_added', (snap) => {
+                const newOrder = snap.val();
+                if (newOrder) {
+                    showNotification('📦 Ada pesanan baru!', 'success');
+                    loadOrders();
+                }
             });
             
-            db.ref('/transactions').on('child_added', (snap) => {
+            db.ref('/merchant_orders/' + currentMerchant.id).on('child_changed', (snap) => {
                 loadOrders();
-                showNotification('Ada pesanan baru!', 'success');
             });
         }
         
@@ -1931,7 +1952,7 @@
             
             // Hitung penjualan hari ini
             const salesToday = ordersToday.reduce((sum, order) => {
-                const totalOrder = order.merchant_items.reduce((s, item) => s + (item.price * item.quantity), 0);
+                const totalOrder = order.items ? order.items.reduce((s, item) => s + (item.price * item.quantity), 0) : 0;
                 return sum + totalOrder;
             }, 0);
             
@@ -1949,12 +1970,12 @@
             
             let html = '';
             pendingOrders.forEach(order => {
-                const totalOrder = order.merchant_items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const totalOrder = order.items ? order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0;
                 html += `
                     <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #ecf0f1;">
                         <div>
                             <div style="font-weight: 600;">#${order.id.slice(-6)}</div>
-                            <div style="font-size: 12px; color: #7f8c8d;">${order.merchant_items.length} item</div>
+                            <div style="font-size: 12px; color: #7f8c8d;">${order.items ? order.items.length : 0} item</div>
                         </div>
                         <div style="text-align: right;">
                             <div style="font-weight: 700;">${formatRupiah(totalOrder)}</div>
@@ -1987,7 +2008,7 @@
                 const sales = orders
                     .filter(o => o.timestamp >= date.getTime() && o.timestamp < nextDate.getTime())
                     .reduce((sum, order) => {
-                        const totalOrder = order.merchant_items.reduce((s, item) => s + (item.price * item.quantity), 0);
+                        const totalOrder = order.items ? order.items.reduce((s, item) => s + (item.price * item.quantity), 0) : 0;
                         return sum + totalOrder;
                     }, 0);
                 
@@ -2029,17 +2050,19 @@
             const productSales = {};
             
             orders.forEach(order => {
-                order.merchant_items.forEach(item => {
-                    if (!productSales[item.id]) {
-                        productSales[item.id] = {
-                            name: item.name,
-                            quantity: 0,
-                            total: 0
-                        };
-                    }
-                    productSales[item.id].quantity += item.quantity;
-                    productSales[item.id].total += item.price * item.quantity;
-                });
+                if (order.items) {
+                    order.items.forEach(item => {
+                        if (!productSales[item.id]) {
+                            productSales[item.id] = {
+                                name: item.name,
+                                quantity: 0,
+                                total: 0
+                            };
+                        }
+                        productSales[item.id].quantity += item.quantity;
+                        productSales[item.id].total += item.price * item.quantity;
+                    });
+                }
             });
             
             // Urutkan berdasarkan quantity
@@ -2076,9 +2099,9 @@
             const monthOrders = orders.filter(o => o.timestamp >= monthStart && o.timestamp <= monthEnd);
             
             const totalOrders = monthOrders.length;
-            const totalItems = monthOrders.reduce((sum, o) => sum + o.merchant_items.reduce((s, i) => s + i.quantity, 0), 0);
+            const totalItems = monthOrders.reduce((sum, o) => sum + (o.items ? o.items.reduce((s, i) => s + i.quantity, 0) : 0), 0);
             const totalSales = monthOrders.reduce((sum, o) => {
-                return sum + o.merchant_items.reduce((s, i) => s + (i.price * i.quantity), 0);
+                return sum + (o.items ? o.items.reduce((s, i) => s + (i.price * i.quantity), 0) : 0);
             }, 0);
             
             container.innerHTML = `
@@ -2218,7 +2241,7 @@
                 const panel = document.getElementById('notification-panel');
                 const badge = document.querySelector('.notification-badge');
                 
-                if (!badge.contains(event.target) && !panel.contains(event.target)) {
+                if (badge && !badge.contains(event.target) && panel && !panel.contains(event.target)) {
                     panel.style.display = 'none';
                 }
             });
