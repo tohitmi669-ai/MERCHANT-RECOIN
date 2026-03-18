@@ -1902,170 +1902,31 @@
             });
         }
         
-        // ===========================================
-        // IMAGE UPLOAD FUNCTIONS - OPTIMIZED UNTUK MOBILE
-        // ===========================================
-        function triggerFileInput() {
-            document.getElementById('file-input').click();
-        }
-        
-        function triggerCamera() {
-            const fileInput = document.getElementById('file-input');
-            fileInput.setAttribute('capture', 'environment');
-            fileInput.click();
-        }
-        
-        function triggerGallery() {
-            const fileInput = document.getElementById('file-input');
-            fileInput.removeAttribute('capture');
-            fileInput.click();
-        }
-        
-        function handleImageUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            // Validasi tipe file
-            if (!file.type.match('image.*')) {
-                showNotification('Hanya file gambar yang diperbolehkan!', 'error');
-                return;
-            }
-            
-            // Validasi ukuran (max 5MB untuk mobile)
-            if (file.size > 5 * 1024 * 1024) {
-                showNotification('Ukuran gambar maksimal 5MB!', 'error');
-                return;
-            }
-            
-            currentImageFile = file;
-            
-            // Preview gambar dengan kompresi untuk performa mobile
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const preview = document.getElementById('preview-image');
-                const previewContainer = document.getElementById('image-preview');
-                const cameraIcon = previewContainer.querySelector('i');
-                
-                preview.src = e.target.result;
-                preview.style.display = 'block';
-                if (cameraIcon) cameraIcon.style.display = 'none';
-                
-                // Update text
-                const uploadText = previewContainer.querySelector('.upload-text');
-                if (uploadText) uploadText.innerHTML = 'Gambar siap, tap untuk ganti';
-                
-                // Tambah class has-image
-                previewContainer.classList.add('has-image');
-            };
-            reader.readAsDataURL(file);
-        }
-        
-        async function uploadImage(file, productId) {
-            return new Promise((resolve, reject) => {
-                if (!file) {
-                    resolve(null);
-                    return;
-                }
-                
-                const progressBar = document.getElementById('upload-progress');
-                const progressBarInner = document.getElementById('upload-progress-bar');
-                
-                progressBar.classList.add('active');
-                imageUploading = true;
-                
-                const fileName = `products/${currentMerchant.id}/${productId}_${Date.now()}.jpg`;
-                const storageRef = storage.ref().child(fileName);
-                const uploadTask = storageRef.put(file);
-                
-                uploadTask.on('state_changed',
-                    (snapshot) => {
-                        // Progress
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        progressBarInner.style.width = progress + '%';
-                    },
-                    (error) => {
-                        // Error
-                        console.error('Upload error:', error);
-                        progressBar.classList.remove('active');
-                        imageUploading = false;
-                        showNotification('Gagal upload gambar: ' + error.message, 'error');
-                        reject(error);
-                    },
-                    async () => {
-                        // Success
-                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-                        progressBar.classList.remove('active');
-                        imageUploading = false;
-                        showNotification('Gambar berhasil diupload!', 'success');
-                        resolve(downloadURL);
-                    }
-                );
-            });
-        }
-        
-        // ===========================================
-        // SIDEBAR TOGGLE UNTUK MOBILE
-        // ===========================================
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            const toggle = document.getElementById('menu-toggle');
-            
-            sidebar.classList.toggle('open');
-            overlay.classList.toggle('active');
-            toggle.classList.toggle('open');
-            
-            if (sidebar.classList.contains('open')) {
-                toggle.innerHTML = '<i class="fas fa-times"></i>';
-            } else {
-                toggle.innerHTML = '<i class="fas fa-bars"></i>';
-            }
-        }
-        
-        function closeSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const overlay = document.getElementById('sidebar-overlay');
-            const toggle = document.getElementById('menu-toggle');
-            
-            sidebar.classList.remove('open');
-            overlay.classList.remove('active');
-            toggle.classList.remove('open');
-            toggle.innerHTML = '<i class="fas fa-bars"></i>';
-        }
-        
-        // ===========================================
-        // SOUND NOTIFICATION
-        // ===========================================
-        function playCoinSound() {
+        // Fungsi untuk memainkan suara notifikasi
+        function playNotificationSound() {
             if (!soundEnabled) return;
             
             try {
-                if (window.AudioContext || window.webkitAudioContext) {
-                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    const oscillator = audioContext.createOscillator();
-                    const gainNode = audioContext.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioContext.destination);
-                    
-                    oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-                    oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
-                    
-                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-                    
-                    oscillator.start();
-                    oscillator.stop(audioContext.currentTime + 0.2);
-                    
-                    if (audioContext.state === 'suspended') {
-                        audioContext.resume();
-                    }
-                } else {
-                    const audio = new Audio();
-                    audio.src = 'data:audio/wav;base64,UklGRlwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YVAAAAA8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PDw8PA==';
-                    audio.volume = 0.3;
-                    audio.play().catch(e => console.log('Audio play failed:', e));
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+                oscillator.frequency.exponentialRampToValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+                oscillator.frequency.exponentialRampToValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.5);
+                
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
                 }
             } catch (e) {
                 console.log('Sound not supported:', e);
@@ -2081,31 +1942,6 @@
             } else {
                 soundToggle.classList.remove('active');
                 soundToggle.innerHTML = '<i class="fas fa-volume-mute"></i>';
-            }
-        }
-        
-        // ===========================================
-        // AUTO REFRESH
-        // ===========================================
-        function startAutoRefresh() {
-            if (autoRefreshInterval) {
-                clearInterval(autoRefreshInterval);
-            }
-            
-            autoRefreshInterval = setInterval(() => {
-                console.log('🔄 Auto refresh setiap 10 detik');
-                if (currentMerchant.id) {
-                    loadOrders();
-                    loadProducts();
-                    loadStatistics();
-                }
-            }, 10000); // 10 detik
-        }
-        
-        function stopAutoRefresh() {
-            if (autoRefreshInterval) {
-                clearInterval(autoRefreshInterval);
-                autoRefreshInterval = null;
             }
         }
         
@@ -2318,20 +2154,15 @@
             loadNotifications();
             loadStatistics();
             
-            // Start listeners
+            // Start real-time listeners untuk sinkronisasi dengan web user
             startOrderListener();
-            startNotificationListener();
             startSaldoListener();
             startUserConfirmationListener();
-            startAutoRefresh();
             
             showNotification('Selamat datang di Merchant RE-COIN!');
         }
         
         function merchantLogout() {
-            // Hentikan semua listener
-            stopAutoRefresh();
-            
             if (currentMerchant.id) {
                 db.ref('/merchant_orders/' + currentMerchant.id).off();
                 db.ref('/merchants/' + currentMerchant.id + '/saldo').off();
@@ -2346,27 +2177,147 @@
         }
         
         // ===========================================
+        // SIDEBAR TOGGLE UNTUK MOBILE
+        // ===========================================
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const toggle = document.getElementById('menu-toggle');
+            
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+            toggle.classList.toggle('open');
+            
+            if (sidebar.classList.contains('open')) {
+                toggle.innerHTML = '<i class="fas fa-times"></i>';
+            } else {
+                toggle.innerHTML = '<i class="fas fa-bars"></i>';
+            }
+        }
+        
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const toggle = document.getElementById('menu-toggle');
+            
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            toggle.classList.remove('open');
+            toggle.innerHTML = '<i class="fas fa-bars"></i>';
+        }
+        
+        // ===========================================
+        // IMAGE UPLOAD FUNCTIONS
+        // ===========================================
+        function triggerFileInput() {
+            document.getElementById('file-input').click();
+        }
+        
+        function triggerCamera() {
+            const fileInput = document.getElementById('file-input');
+            fileInput.setAttribute('capture', 'environment');
+            fileInput.click();
+        }
+        
+        function triggerGallery() {
+            const fileInput = document.getElementById('file-input');
+            fileInput.removeAttribute('capture');
+            fileInput.click();
+        }
+        
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.type.match('image.*')) {
+                showNotification('Hanya file gambar yang diperbolehkan!', 'error');
+                return;
+            }
+            
+            if (file.size > 5 * 1024 * 1024) {
+                showNotification('Ukuran gambar maksimal 5MB!', 'error');
+                return;
+            }
+            
+            currentImageFile = file;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('preview-image');
+                const previewContainer = document.getElementById('image-preview');
+                const cameraIcon = previewContainer.querySelector('i');
+                
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                if (cameraIcon) cameraIcon.style.display = 'none';
+                
+                const uploadText = previewContainer.querySelector('.upload-text');
+                if (uploadText) uploadText.innerHTML = 'Gambar siap, tap untuk ganti';
+                
+                previewContainer.classList.add('has-image');
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        async function uploadImage(file, productId) {
+            return new Promise((resolve, reject) => {
+                if (!file) {
+                    resolve(null);
+                    return;
+                }
+                
+                const progressBar = document.getElementById('upload-progress');
+                const progressBarInner = document.getElementById('upload-progress-bar');
+                
+                progressBar.classList.add('active');
+                imageUploading = true;
+                
+                const fileName = `products/${currentMerchant.id}/${productId}_${Date.now()}.jpg`;
+                const storageRef = storage.ref().child(fileName);
+                const uploadTask = storageRef.put(file);
+                
+                uploadTask.on('state_changed',
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        progressBarInner.style.width = progress + '%';
+                    },
+                    (error) => {
+                        console.error('Upload error:', error);
+                        progressBar.classList.remove('active');
+                        imageUploading = false;
+                        showNotification('Gagal upload gambar: ' + error.message, 'error');
+                        reject(error);
+                    },
+                    async () => {
+                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                        progressBar.classList.remove('active');
+                        imageUploading = false;
+                        showNotification('Gambar berhasil diupload!', 'success');
+                        resolve(downloadURL);
+                    }
+                );
+            });
+        }
+        
+        // ===========================================
         // SALDO LISTENER - REAL TIME
         // ===========================================
         function startSaldoListener() {
             if (!currentMerchant.id) return;
             
-            // Listen untuk perubahan saldo
             db.ref('/merchants/' + currentMerchant.id + '/saldo').on('value', (snap) => {
                 const newSaldo = snap.val() || 0;
                 const oldSaldo = currentMerchant.saldo;
                 
                 currentMerchant.saldo = newSaldo;
                 
-                // Update UI
                 document.getElementById('merchant-balance').innerHTML = formatRupiah(newSaldo);
                 document.getElementById('stat-saldo').innerHTML = formatRupiah(newSaldo);
                 document.getElementById('withdraw-saldo').innerHTML = formatRupiah(newSaldo);
                 
-                // Tampilkan notifikasi jika saldo bertambah
                 if (newSaldo > oldSaldo) {
                     showNotification('💰 Saldo bertambah! Ada konfirmasi pesanan baru', 'success');
-                    playCoinSound();
+                    playNotificationSound();
                 }
             });
         }
@@ -2451,7 +2402,6 @@
             const modal = document.getElementById('product-modal');
             modal.style.display = 'flex';
             
-            // Reset form
             document.getElementById('preview-image').style.display = 'none';
             document.getElementById('preview-image').src = '';
             const previewContainer = document.getElementById('image-preview');
@@ -2462,7 +2412,6 @@
             currentImageFile = null;
             
             if (productId) {
-                // Edit mode
                 const product = products.find(p => p.id === productId);
                 if (product) {
                     document.getElementById('modal-title').innerHTML = 'Edit Produk';
@@ -2472,7 +2421,6 @@
                     document.getElementById('product-description').value = product.description || '';
                     document.getElementById('product-delivery-antar').checked = product.delivery_antar || false;
                     
-                    // Show existing image
                     if (product.image && !product.image.includes('placeholder')) {
                         const preview = document.getElementById('preview-image');
                         preview.src = product.image;
@@ -2492,7 +2440,6 @@
                     editingProductId = productId;
                 }
             } else {
-                // Add mode
                 document.getElementById('modal-title').innerHTML = 'Tambah Produk Baru';
                 document.getElementById('product-name').value = '';
                 document.getElementById('product-price').value = '';
@@ -2534,10 +2481,8 @@
             
             showNotification('Menyimpan produk...', 'info');
             
-            // Buat productId sementara untuk upload
             const tempProductId = editingProductId || 'temp_' + Date.now();
             
-            // Upload gambar jika ada
             let imageUrl = null;
             if (currentImageFile) {
                 try {
@@ -2561,7 +2506,6 @@
                 updated_at: Date.now()
             };
             
-            // Set image URL
             if (imageUrl) {
                 productData.image = imageUrl;
             } else if (!editingProductId) {
@@ -2569,8 +2513,6 @@
             }
             
             if (editingProductId) {
-                // Update existing product
-                // Jika tidak ada gambar baru, pertahankan gambar lama
                 if (!imageUrl) {
                     const oldProduct = products.find(p => p.id === editingProductId);
                     if (oldProduct && oldProduct.image) {
@@ -2585,15 +2527,12 @@
                     showNotification('Gagal update produk: ' + error.message, 'error');
                 });
             } else {
-                // Add new product
                 productData.created_at = Date.now();
                 
                 const newProductRef = db.ref('/products').push();
                 const productId = newProductRef.key;
                 
-                // Update image URL with correct productId if needed
                 if (imageUrl && imageUrl.includes('temp_' + Date.now())) {
-                    // Upload ulang dengan ID yang benar
                     uploadImage(currentImageFile, productId).then(newImageUrl => {
                         productData.image = newImageUrl;
                         newProductRef.set(productData).then(() => {
@@ -2629,11 +2568,12 @@
         }
         
         // ===========================================
-        // ORDERS MANAGEMENT
+        // ORDERS MANAGEMENT - SINKRON DENGAN WEB USER
         // ===========================================
         function loadOrders() {
             if (!currentMerchant.id) return;
             
+            // Load dari node merchant_orders
             db.ref('/merchant_orders/' + currentMerchant.id).once('value', (snap) => {
                 orders = [];
                 const data = snap.val() || {};
@@ -2670,7 +2610,7 @@
                                        order.status === 'dikirim' ? 'status-dikirim' : 
                                        order.status === 'selesai' ? 'status-selesai' : 'status-batal';
                     
-                    const hasDelivery = order.delivery && order.delivery.address;
+                    const hasDelivery = order.delivery && (order.delivery.address || order.delivery.lat);
                     
                     html += `
                         <tr id="order-row-${order.id}">
@@ -2683,23 +2623,20 @@
                             <td>${formatDate(order.timestamp)}</td>
                             <td>
                                 <div class="action-buttons" style="display: flex; gap: 5px;">
-                                    <button class="action-btn view" onclick="viewOrder('${order.id}')" title="Lihat" style="padding: 8px;">
+                                    <button class="action-btn view" onclick="viewOrder('${order.id}')" title="Lihat Detail" style="padding: 8px;">
                                         <i class="fas fa-eye"></i>
                                     </button>
                                     ${hasDelivery ? `
-                                        <button class="action-btn map" onclick="showMaps('${order.id}')" title="Lokasi" style="padding: 8px;">
+                                        <button class="action-btn map" onclick="showMaps('${order.id}')" title="Lokasi Pembeli" style="padding: 8px;">
                                             <i class="fas fa-map-marker-alt"></i>
                                         </button>
                                     ` : ''}
                                     ${order.status === 'diproses' ? `
-                                        <button class="action-btn edit" onclick="updateOrderStatus('${order.id}', 'dikirim')" title="Kirim" style="padding: 8px;">
+                                        <button class="action-btn edit" onclick="updateOrderStatus('${order.id}', 'dikirim')" title="Kirim Pesanan" style="padding: 8px;">
                                             <i class="fas fa-truck"></i>
                                         </button>
                                     ` : ''}
-                                    ${order.status === 'dikirim' ? `
-                                        <span class="status-badge status-dikirim" style="font-size: 10px;">Menunggu</span>
-                                    ` : ''}
-                                    <button class="action-btn" onclick="printNota('${order.id}')" title="Cetak" style="padding: 8px;">
+                                    <button class="action-btn" onclick="printNota('${order.id}')" title="Cetak Nota" style="padding: 8px;">
                                         <i class="fas fa-print"></i>
                                     </button>
                                 </div>
@@ -2727,7 +2664,7 @@
                                        order.status === 'dikirim' ? 'status-dikirim' : 
                                        order.status === 'selesai' ? 'status-selesai' : 'status-batal';
                     
-                    const hasDelivery = order.delivery && order.delivery.address;
+                    const hasDelivery = order.delivery && (order.delivery.address || order.delivery.lat);
                     
                     mobileHtml += `
                         <div class="order-mobile-card" id="order-mobile-${order.id}">
@@ -2781,7 +2718,6 @@
         }
         
         function displayHistory() {
-            // Table view untuk desktop
             const tbody = document.getElementById('history-list');
             const completedOrders = orders.filter(o => o.status === 'selesai' || o.status === 'batal');
             
@@ -2793,7 +2729,7 @@
                     const totalOrder = order.items ? order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0;
                     const statusClass = order.status === 'selesai' ? 'status-selesai' : 'status-batal';
                     
-                    const hasDelivery = order.delivery && order.delivery.address;
+                    const hasDelivery = order.delivery && (order.delivery.address || order.delivery.lat);
                     
                     html += `
                         <tr>
@@ -2811,7 +2747,7 @@
                                             <i class="fas fa-map-marker-alt"></i>
                                         </button>
                                     ` : ''}
-                                    <button class="action-btn view" onclick="printNota('${order.id}')" title="Cetak" style="padding: 8px;">
+                                    <button class="action-btn view" onclick="printNota('${order.id}')" title="Cetak Nota" style="padding: 8px;">
                                         <i class="fas fa-print"></i>
                                     </button>
                                 </div>
@@ -2837,7 +2773,7 @@
                     const totalOrder = order.items ? order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0;
                     const statusClass = order.status === 'selesai' ? 'status-selesai' : 'status-batal';
                     
-                    const hasDelivery = order.delivery && order.delivery.address;
+                    const hasDelivery = order.delivery && (order.delivery.address || order.delivery.lat);
                     
                     mobileHtml += `
                         <div class="order-mobile-card">
@@ -2882,69 +2818,84 @@
             }
         }
         
-        function showMaps(orderId) {
-            const order = orders.find(o => o.id === orderId);
-            if (!order || !order.delivery) return;
+        // ===========================================
+        // LISTENER UNTUK PESANAN BARU (DARI WEB USER)
+        // ===========================================
+        function startOrderListener() {
+            if (!currentMerchant.id) return;
             
-            const mapsLink = order.delivery.google_maps_link || 
-                            `https://www.google.com/maps/search/?api=1&query=${order.delivery.user_location?.lat || 0},${order.delivery.user_location?.lng || 0}`;
+            console.log('Memulai listener pesanan untuk merchant:', currentMerchant.id);
             
-            currentMapsUrl = mapsLink;
-            
-            const mapsContent = `
-                <div style="text-align: center;">
-                    <h4 style="margin-bottom: 15px;">Lokasi Pengiriman</h4>
-                    <p><strong>Alamat:</strong> ${order.delivery.address || 'Tidak ada alamat'}</p>
-                    <p><strong>Jarak:</strong> ${order.delivery.distance ? order.delivery.distance.toFixed(1) + ' km' : 'Tidak diketahui'}</p>
-                    <p><strong>Ongkos Kirim:</strong> ${order.delivery_cost ? formatRupiah(order.delivery_cost) : 'Rp 0'}</p>
-                    <div style="background: #f0f0f0; padding: 20px; border-radius: 16px; margin: 20px 0;">
-                        <i class="fas fa-map-marked-alt" style="font-size: 48px; color: var(--info); margin-bottom: 10px;"></i>
-                        <p>Klik tombol di bawah untuk membuka Google Maps</p>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('maps-content').innerHTML = mapsContent;
-            document.getElementById('maps-modal').style.display = 'flex';
-        }
-        
-        function closeMapsModal() {
-            document.getElementById('maps-modal').style.display = 'none';
-        }
-        
-        function openGoogleMaps() {
-            if (currentMapsUrl) {
-                window.open(currentMapsUrl, '_blank');
-            }
-        }
-        
-        function checkLowStock() {
-            const lowStockProducts = products.filter(p => p.stock <= 5);
-            const container = document.getElementById('dashboard-stock');
-            
-            if (lowStockProducts.length === 0) {
-                container.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 20px;">Semua stok aman</p>';
-                return;
-            }
-            
-            let html = '';
-            lowStockProducts.slice(0, 5).forEach(product => {
-                html += `
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #ecf0f1;">
-                        <div style="font-weight: 600;">${product.name}</div>
-                        <div style="color: var(--danger); font-weight: 600;">Stok: ${product.stock}</div>
-                    </div>
-                `;
+            // Listen untuk pesanan baru di merchant_orders
+            db.ref('/merchant_orders/' + currentMerchant.id).on('child_added', (snap) => {
+                const newOrder = snap.val();
+                console.log('🔥 PESANAN BARU MASUK:', snap.key, newOrder);
+                
+                // Tampilkan notifikasi
+                showNotification('📦 Ada pesanan baru masuk!', 'success');
+                playNotificationSound();
+                
+                // Tambahkan ke array orders
+                const orderExists = orders.some(o => o.id === snap.key);
+                if (!orderExists) {
+                    orders.push({
+                        id: snap.key,
+                        ...newOrder
+                    });
+                    
+                    // Urutkan ulang
+                    orders.sort((a, b) => b.timestamp - a.timestamp);
+                    
+                    // Update tampilan
+                    displayOrders();
+                    displayHistory();
+                    updateDashboardOrders();
+                    updateDashboardStats();
+                }
             });
             
-            container.innerHTML = html;
+            // Listen untuk perubahan status (dari user atau sistem)
+            db.ref('/merchant_orders/' + currentMerchant.id).on('child_changed', (snap) => {
+                const updatedOrder = snap.val();
+                console.log('📝 STATUS PESANAN BERUBAH:', snap.key, updatedOrder);
+                
+                // Update di array orders
+                const index = orders.findIndex(o => o.id === snap.key);
+                if (index !== -1) {
+                    orders[index] = { ...orders[index], ...updatedOrder };
+                    
+                    // Jika status berubah jadi 'selesai', saldo sudah ditambah otomatis oleh sistem
+                    if (updatedOrder.status === 'selesai') {
+                        showNotification('✅ Pesanan #' + snap.key.slice(-8) + ' telah dikonfirmasi selesai oleh pembeli!', 'success');
+                        playNotificationSound();
+                        
+                        // Highlight baris yang diupdate
+                        const row = document.getElementById(`order-row-${snap.key}`);
+                        if (row) {
+                            row.classList.add('row-updated');
+                            setTimeout(() => row.classList.remove('row-updated'), 2000);
+                        }
+                        
+                        const mobileRow = document.getElementById(`order-mobile-${snap.key}`);
+                        if (mobileRow) {
+                            mobileRow.style.backgroundColor = '#fff3cd';
+                            setTimeout(() => mobileRow.style.backgroundColor = '', 2000);
+                        }
+                    }
+                    
+                    // Update tampilan
+                    displayOrders();
+                    displayHistory();
+                    updateDashboardOrders();
+                    updateDashboardStats();
+                }
+            });
         }
         
         // ===========================================
-        // UPDATE ORDER STATUS (DARI MERCHANT)
+        // UPDATE STATUS PESANAN (DARI MERCHANT)
         // ===========================================
-        function updateOrderStatus(orderId, status) {
-            // Cari order
+        function updateOrderStatus(orderId, newStatus) {
             const order = orders.find(o => o.id === orderId);
             if (!order) {
                 showNotification('Order tidak ditemukan', 'error');
@@ -2961,29 +2912,30 @@
             
             const updates = {};
             
-            // 1. Update di transaksi user
-            updates[`/transactions/${userId}/${orderId}/status`] = status;
+            // Update di transaksi user
+            updates[`/transactions/${userId}/${orderId}/status`] = newStatus;
             
-            // 2. Update di merchant_orders
-            updates[`/merchant_orders/${currentMerchant.id}/${orderId}/status`] = status;
+            // Update di merchant_orders
+            updates[`/merchant_orders/${currentMerchant.id}/${orderId}/status`] = newStatus;
             
-            // 3. Jika status 'dikirim', kirim notifikasi ke user
-            if (status === 'dikirim') {
+            // Jika status 'dikirim', tambahkan informasi pengiriman
+            if (newStatus === 'dikirim') {
                 updates[`/transactions/${userId}/${orderId}/delivery_sent_at`] = Date.now();
+                updates[`/merchant_orders/${currentMerchant.id}/${orderId}/delivery_sent_at`] = Date.now();
             }
             
             db.ref().update(updates).then(() => {
-                showNotification(`Status pesanan diupdate menjadi ${status}`, 'success');
-                playCoinSound();
+                showNotification(`Status pesanan diupdate menjadi ${newStatus}`, 'success');
+                playNotificationSound();
                 
                 // Update local orders
-                order.status = status;
+                order.status = newStatus;
                 displayOrders();
                 displayHistory();
                 updateDashboardOrders();
                 
                 // Kirim notifikasi WhatsApp ke user
-                if (status === 'dikirim') {
+                if (newStatus === 'dikirim') {
                     const pesan = `*PESANAN ANDA TELAH DIKIRIM*\n\n` +
                                  `Halo kak! Pesanan #${orderId.slice(-8)} sudah kami kirim.\n` +
                                  `Silakan cek aplikasi RE-COIN untuk konfirmasi penerimaan.\n\n` +
@@ -3023,7 +2975,7 @@
                     // Jika status jadi 'selesai', saldo sudah ditambah oleh user
                     if (updatedOrder.status === 'selesai') {
                         showNotification('✅ Pesanan #' + orderId.slice(-8) + ' telah dikonfirmasi selesai oleh pembeli!', 'success');
-                        playCoinSound();
+                        playNotificationSound();
                         
                         // Highlight baris yang diupdate
                         const row = document.getElementById(`order-row-${orderId}`);
@@ -3053,18 +3005,78 @@
                     updateDashboardOrders();
                 }
             });
+        }
+        
+        function showMaps(orderId) {
+            const order = orders.find(o => o.id === orderId);
+            if (!order || !order.delivery) return;
             
-            // Listen untuk order baru
-            db.ref('/merchant_orders/' + currentMerchant.id).on('child_added', (snap) => {
-                console.log('🔥 ORDER BARU:', snap.key, snap.val());
-                showNotification('📦 Ada pesanan baru!', 'success');
-                playCoinSound();
-                loadOrders();
-            });
+            let mapsLink = '';
+            let addressText = '';
+            
+            if (order.delivery.address) {
+                // Alamat manual
+                addressText = order.delivery.address;
+                mapsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.delivery.address)}`;
+            } else if (order.delivery.lat && order.delivery.lng) {
+                // Koordinat GPS
+                addressText = `${order.delivery.lat}, ${order.delivery.lng}`;
+                mapsLink = `https://www.google.com/maps/search/?api=1&query=${order.delivery.lat},${order.delivery.lng}`;
+            }
+            
+            currentMapsUrl = mapsLink;
+            
+            const mapsContent = `
+                <div style="text-align: center;">
+                    <h4 style="margin-bottom: 15px;">Lokasi Pengiriman</h4>
+                    <p><strong>Alamat:</strong> ${addressText || 'Tidak ada alamat'}</p>
+                    <p><strong>Jarak:</strong> ${order.delivery.distance ? order.delivery.distance.toFixed(1) + ' km' : 'Tidak diketahui'}</p>
+                    <p><strong>Ongkos Kirim:</strong> ${order.delivery_cost ? formatRupiah(order.delivery_cost) : 'Rp 0'}</p>
+                    <div style="background: #f0f0f0; padding: 20px; border-radius: 16px; margin: 20px 0;">
+                        <i class="fas fa-map-marked-alt" style="font-size: 48px; color: var(--info); margin-bottom: 10px;"></i>
+                        <p>Klik tombol di bawah untuk membuka Google Maps</p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('maps-content').innerHTML = mapsContent;
+            document.getElementById('maps-modal').style.display = 'flex';
+        }
+        
+        function closeMapsModal() {
+            document.getElementById('maps-modal').style.display = 'none';
+        }
+        
+        function openGoogleMaps() {
+            if (currentMapsUrl) {
+                window.open(currentMapsUrl, '_blank');
+            }
         }
         
         function viewOrder(orderId) {
             printNota(orderId);
+        }
+        
+        function checkLowStock() {
+            const lowStockProducts = products.filter(p => p.stock <= 5);
+            const container = document.getElementById('dashboard-stock');
+            
+            if (lowStockProducts.length === 0) {
+                container.innerHTML = '<p style="color: #7f8c8d; text-align: center; padding: 20px;">Semua stok aman</p>';
+                return;
+            }
+            
+            let html = '';
+            lowStockProducts.slice(0, 5).forEach(product => {
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #ecf0f1;">
+                        <div style="font-weight: 600;">${product.name}</div>
+                        <div style="color: var(--danger); font-weight: 600;">Stok: ${product.stock}</div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
         }
         
         // ===========================================
@@ -3093,28 +3105,28 @@
             
             const notaHtml = `
                 <div class="nota-container" id="nota-print" style="padding: 15px;">
-                    <div class="nota-header">
-                        <div class="nota-title">RE-COIN</div>
-                        <div style="font-size: 11px;">Nota Pesanan</div>
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <div style="font-size: 24px; font-weight: 800; color: var(--primary);">RE-COIN</div>
+                        <div style="font-size: 14px;">Nota Pesanan</div>
                     </div>
                     
-                    <div class="nota-info" style="font-size: 12px;">
+                    <div style="font-size: 13px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #dfe6e9;">
                         <p><strong>No. Order:</strong> #${order.id.slice(-8)}</p>
                         <p><strong>Tanggal:</strong> ${formatDate(order.timestamp)}</p>
                         <p><strong>Pembeli:</strong> ${order.user_id || '-'}</p>
                         <p><strong>Merchant:</strong> ${currentMerchant.nama_toko}</p>
                         ${order.delivery ? `
-                            <p><strong>Alamat Kirim:</strong> ${order.delivery.address || '-'}</p>
+                            <p><strong>Alamat Kirim:</strong> ${order.delivery.address || `${order.delivery.lat}, ${order.delivery.lng}`}</p>
                         ` : '<p><strong>Metode:</strong> Ambil di Toko</p>'}
                     </div>
                     
-                    <table class="nota-table" style="font-size: 11px;">
+                    <table style="width: 100%; font-size: 12px; border-collapse: collapse; margin-bottom: 15px;">
                         <thead>
-                            <tr>
-                                <th>Produk</th>
-                                <th>Qty</th>
-                                <th>Harga</th>
-                                <th>Subtotal</th>
+                            <tr style="background: #f0f0f0;">
+                                <th style="padding: 8px; text-align: left;">Produk</th>
+                                <th style="padding: 8px; text-align: center;">Qty</th>
+                                <th style="padding: 8px; text-align: right;">Harga</th>
+                                <th style="padding: 8px; text-align: right;">Subtotal</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -3122,10 +3134,14 @@
                         </tbody>
                     </table>
                     
-                    <div style="text-align: right; margin-top: 10px; font-size: 12px;">
+                    <div style="text-align: right; margin-top: 15px; padding-top: 10px; border-top: 1px solid #dfe6e9; font-size: 14px;">
                         <p><strong>Subtotal: ${formatRupiah(totalOrder)}</strong></p>
                         ${order.delivery_cost ? `<p><strong>Ongkos Kirim: ${formatRupiah(order.delivery_cost)}</strong></p>` : ''}
-                        <p><strong>Total: ${formatRupiah(grandTotal)}</strong></p>
+                        <p style="font-size: 16px; color: var(--primary);"><strong>Total: ${formatRupiah(grandTotal)}</strong></p>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 20px; font-size: 11px; color: #7f8c8d;">
+                        Terima kasih telah berbelanja di RE-COIN!
                     </div>
                 </div>
             `;
@@ -3158,95 +3174,8 @@
         }
         
         // ===========================================
-        // WITHDRAWAL
-        // ===========================================
-        function requestWithdrawal() {
-            const method = document.getElementById('withdraw-method').value;
-            const details = document.getElementById('withdraw-details').value;
-            const amount = parseInt(document.getElementById('withdraw-amount').value) || 0;
-            
-            if (!details) {
-                showNotification('Isi detail rekening!', 'error');
-                return;
-            }
-            
-            if (amount < 50000) {
-                showNotification('Minimal penarikan Rp 50.000', 'error');
-                return;
-            }
-            
-            if (amount > currentMerchant.saldo) {
-                showNotification('Saldo tidak mencukupi!', 'error');
-                return;
-            }
-            
-            const withdrawId = 'wd_' + Date.now();
-            const withdrawData = {
-                id: withdrawId,
-                merchant_id: currentMerchant.id,
-                merchant_name: currentMerchant.nama_toko,
-                method: method,
-                details: details,
-                amount: amount,
-                timestamp: Date.now(),
-                status: 'pending'
-            };
-            
-            db.ref('/withdrawals/' + withdrawId).set(withdrawData).then(() => {
-                // Kurangi saldo sementara
-                const newSaldo = currentMerchant.saldo - amount;
-                db.ref('/merchants/' + currentMerchant.id + '/saldo').set(newSaldo).then(() => {
-                    currentMerchant.saldo = newSaldo;
-                    document.getElementById('merchant-balance').innerHTML = formatRupiah(newSaldo);
-                    document.getElementById('stat-saldo').innerHTML = formatRupiah(newSaldo);
-                    document.getElementById('withdraw-saldo').innerHTML = formatRupiah(newSaldo);
-                    
-                    showNotification('Permintaan penarikan dikirim', 'success');
-                    
-                    // Reset form
-                    document.getElementById('withdraw-details').value = '';
-                    document.getElementById('withdraw-amount').value = '';
-                    
-                    // Kirim notifikasi ke admin
-                    sendWithdrawNotification(withdrawData);
-                });
-            }).catch(error => {
-                showNotification('Gagal: ' + error.message, 'error');
-            });
-        }
-        
-        function sendWithdrawNotification(withdrawData) {
-            const pesan = `*PENARIKAN SALDO MERCHANT*\n` +
-                         `Merchant: ${withdrawData.merchant_name}\n` +
-                         `ID: ${withdrawData.merchant_id}\n` +
-                         `Jumlah: Rp ${withdrawData.amount.toLocaleString('id-ID')}\n` +
-                         `Metode: ${withdrawData.method}\n` +
-                         `Detail: ${withdrawData.details}`;
-            
-            window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(pesan)}`, '_blank');
-        }
-        
-        // ===========================================
         // NOTIFICATIONS
         // ===========================================
-        function startOrderListener() {
-            if (!currentMerchant.id) return;
-            
-            // Listen untuk order baru di merchant_orders
-            db.ref('/merchant_orders/' + currentMerchant.id).on('child_added', (snap) => {
-                const newOrder = snap.val();
-                if (newOrder) {
-                    showNotification('📦 Ada pesanan baru!', 'success');
-                    playCoinSound();
-                    loadOrders();
-                }
-            });
-            
-            db.ref('/merchant_orders/' + currentMerchant.id).on('child_changed', (snap) => {
-                loadOrders();
-            });
-        }
-        
         function loadNotifications() {
             notifications = [
                 {
@@ -3269,13 +3198,8 @@
             const panel = document.getElementById('notification-panel');
             panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
             
-            // Mark all as read
             notifications.forEach(n => n.read = true);
             updateNotificationCount();
-        }
-        
-        function startNotificationListener() {
-            // Listen untuk notifikasi dari Firebase
         }
         
         // ===========================================
@@ -3291,14 +3215,12 @@
         function updateDashboardStats() {
             document.getElementById('stat-total-produk').innerHTML = products.length;
             
-            // Hitung pesanan hari ini
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             
             const ordersToday = orders.filter(o => o.timestamp >= today.getTime());
             document.getElementById('stat-pesanan-hari').innerHTML = ordersToday.length;
             
-            // Hitung penjualan hari ini
             const salesToday = ordersToday.reduce((sum, order) => {
                 const totalOrder = order.items ? order.items.reduce((s, item) => s + (item.price * item.quantity), 0) : 0;
                 return sum + totalOrder;
@@ -3319,7 +3241,7 @@
             let html = '';
             pendingOrders.forEach(order => {
                 const totalOrder = order.items ? order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0;
-                const hasDelivery = order.delivery && order.delivery.address;
+                const hasDelivery = order.delivery && (order.delivery.address || order.delivery.lat);
                 
                 html += `
                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #ecf0f1;">
@@ -3341,7 +3263,6 @@
         function initSalesChart() {
             const ctx = document.getElementById('salesChart').getContext('2d');
             
-            // Data 7 hari terakhir
             const labels = [];
             const data = [];
             
@@ -3416,7 +3337,6 @@
         function loadTopProducts() {
             const container = document.getElementById('top-products');
             
-            // Hitung penjualan per produk
             const productSales = {};
             
             orders.forEach(order => {
@@ -3435,7 +3355,6 @@
                 }
             });
             
-            // Urutkan berdasarkan quantity
             const sorted = Object.values(productSales).sort((a, b) => b.quantity - a.quantity).slice(0, 5);
             
             if (sorted.length === 0) {
@@ -3491,6 +3410,71 @@
         }
         
         // ===========================================
+        // WITHDRAWAL
+        // ===========================================
+        function requestWithdrawal() {
+            const method = document.getElementById('withdraw-method').value;
+            const details = document.getElementById('withdraw-details').value;
+            const amount = parseInt(document.getElementById('withdraw-amount').value) || 0;
+            
+            if (!details) {
+                showNotification('Isi detail rekening!', 'error');
+                return;
+            }
+            
+            if (amount < 50000) {
+                showNotification('Minimal penarikan Rp 50.000', 'error');
+                return;
+            }
+            
+            if (amount > currentMerchant.saldo) {
+                showNotification('Saldo tidak mencukupi!', 'error');
+                return;
+            }
+            
+            const withdrawId = 'wd_' + Date.now();
+            const withdrawData = {
+                id: withdrawId,
+                merchant_id: currentMerchant.id,
+                merchant_name: currentMerchant.nama_toko,
+                method: method,
+                details: details,
+                amount: amount,
+                timestamp: Date.now(),
+                status: 'pending'
+            };
+            
+            db.ref('/withdrawals/' + withdrawId).set(withdrawData).then(() => {
+                // Kurangi saldo
+                const newSaldo = currentMerchant.saldo - amount;
+                db.ref('/merchants/' + currentMerchant.id + '/saldo').set(newSaldo).then(() => {
+                    currentMerchant.saldo = newSaldo;
+                    document.getElementById('merchant-balance').innerHTML = formatRupiah(newSaldo);
+                    document.getElementById('stat-saldo').innerHTML = formatRupiah(newSaldo);
+                    document.getElementById('withdraw-saldo').innerHTML = formatRupiah(newSaldo);
+                    
+                    showNotification('Permintaan penarikan dikirim', 'success');
+                    
+                    // Reset form
+                    document.getElementById('withdraw-details').value = '';
+                    document.getElementById('withdraw-amount').value = '';
+                    
+                    // Kirim notifikasi ke admin
+                    const pesan = `*PENARIKAN SALDO MERCHANT*\n` +
+                                 `Merchant: ${withdrawData.merchant_name}\n` +
+                                 `ID: ${withdrawData.merchant_id}\n` +
+                                 `Jumlah: Rp ${withdrawData.amount.toLocaleString('id-ID')}\n` +
+                                 `Metode: ${withdrawData.method}\n` +
+                                 `Detail: ${withdrawData.details}`;
+                    
+                    window.open(`https://wa.me/${ADMIN_WA}?text=${encodeURIComponent(pesan)}`, '_blank');
+                });
+            }).catch(error => {
+                showNotification('Gagal: ' + error.message, 'error');
+            });
+        }
+        
+        // ===========================================
         // PROFILE MANAGEMENT
         // ===========================================
         function loadProfile() {
@@ -3534,26 +3518,20 @@
             item.addEventListener('click', function(e) {
                 e.preventDefault();
                 
-                // Remove active class from all
                 document.querySelectorAll('.sidebar-menu li').forEach(li => {
                     li.classList.remove('active');
                 });
                 
-                // Add active class to clicked
                 this.classList.add('active');
                 
-                // Get section
                 const section = this.getAttribute('data-section');
                 
-                // Hide all sections
                 document.querySelectorAll('.content-section').forEach(s => {
                     s.classList.remove('active');
                 });
                 
-                // Show selected section
                 document.getElementById('section-' + section).classList.add('active');
                 
-                // Update page title
                 const titles = {
                     'dashboard': 'Dashboard',
                     'products': 'Produk Saya',
@@ -3565,12 +3543,10 @@
                 };
                 document.getElementById('page-title').innerHTML = titles[section];
                 
-                // Close sidebar di mobile setelah klik
                 if (window.innerWidth <= 768) {
                     closeSidebar();
                 }
                 
-                // Load specific data
                 if (section === 'profile') {
                     loadProfile();
                 } else if (section === 'statistics') {
@@ -3585,14 +3561,12 @@
         window.onload = function() {
             showLoginForm();
             
-            // Cek auto login
             const autoLoginSuccess = checkAutoLogin();
             if (!autoLoginSuccess) {
                 document.getElementById('login-page').style.display = 'flex';
                 document.getElementById('dashboard-page').style.display = 'none';
             }
             
-            // Click outside to close notification panel
             document.addEventListener('click', function(event) {
                 const panel = document.getElementById('notification-panel');
                 const badge = document.querySelector('.notification-badge');
@@ -3602,7 +3576,6 @@
                 }
             });
             
-            // Close sidebar saat resize ke desktop
             window.addEventListener('resize', function() {
                 if (window.innerWidth > 768) {
                     const sidebar = document.getElementById('sidebar');
@@ -3616,7 +3589,6 @@
                 }
             });
             
-            // Prevent zoom on input focus for iOS
             document.querySelectorAll('input, select, textarea').forEach(el => {
                 el.addEventListener('focus', function() {
                     this.style.fontSize = '16px';
