@@ -2040,38 +2040,43 @@
             reader.readAsDataURL(file);
         }
 
-        async function uploadImage(file, productId) {
-            return new Promise((resolve, reject) => {
-                if (!file) {
-                    resolve(null);
-                    return;
-                }
-                
-                const progressBar = document.getElementById('upload-progress');
-                const progressInner = document.getElementById('upload-progress-bar');
-                progressBar.style.display = 'block';
-                
-                const fileName = `products/${currentMerchant.id}/${productId}_${Date.now()}.jpg`;
-                const storageRef = storage.ref().child(fileName);
-                const uploadTask = storageRef.put(file);
-                
-                uploadTask.on('state_changed',
-                    (snapshot) => {
-                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        progressInner.style.width = progress + '%';
-                    },
-                    (error) => {
-                        progressBar.style.display = 'none';
-                        reject(error);
-                    },
-                    async () => {
-                        const url = await uploadTask.snapshot.ref.getDownloadURL();
-                        progressBar.style.display = 'none';
-                        resolve(url);
-                    }
-                );
-            });
-        }
+        async function uploadImage(file) {
+    if (!file) return null;
+
+    const cloudName = "dxfg3c8it"; // Cloud Name kamu
+    const uploadPreset = "d3z8x6dt"; // Upload Preset (Unsigned) kamu
+
+    // Tampilkan progress bar (opsional, karena Cloudinary fetch tidak lapor progress mentah)
+    const progressBar = document.getElementById('upload-progress');
+    const progressInner = document.getElementById('upload-progress-bar');
+    progressBar.style.display = 'block';
+    progressInner.style.width = '50%'; // Animasi loading simpel
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+
+    try {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) throw new Error('Gagal upload ke Cloudinary');
+
+        const data = await response.json();
+        
+        progressInner.style.width = '100%';
+        setTimeout(() => progressBar.style.display = 'none', 500);
+
+        // Tambahkan optimasi otomatis pada URL agar gambar ringan
+        return data.secure_url.replace('/upload/', '/upload/f_auto,q_auto/');
+    } catch (error) {
+        progressBar.style.display = 'none';
+        console.error("Cloudinary Error:", error);
+        throw error;
+    }
+}
 
         async function saveProduct() {
             const name = document.getElementById('product-name').value.trim();
@@ -2110,7 +2115,7 @@
                 
                 if (selectedImageFile) {
                     try {
-                        const imageUrl = await uploadImage(selectedImageFile, editingProductId);
+                        const imageUrl = await uploadImage(selectedImageFile);
                         productData.image = imageUrl;
                     } catch (error) {
                         showNotification('Gagal upload gambar: ' + error.message, 'error');
@@ -2133,7 +2138,7 @@
                 
                 if (selectedImageFile) {
                     try {
-                        const imageUrl = await uploadImage(selectedImageFile, newProductId);
+                        const imageUrl = await uploadImage(selectedImageFile);
                         productData.image = imageUrl;
                     } catch (error) {
                         showNotification('Gagal upload gambar: ' + error.message, 'error');
